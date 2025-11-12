@@ -6,6 +6,11 @@ import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 
+// Constants
+const LOADING_MESSAGE = 'Analyzing your data locally...';
+const ERROR_TITLE = 'Error!';
+const NO_DATA_ERROR = 'No valid data found in the file. Please check the file format.';
+
 const App: React.FC = () => {
   const [stats, setStats] = useState<ProcessedStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -24,7 +29,7 @@ const App: React.FC = () => {
       const fileContent = await file.text();
       const processedData = parseAndProcessScrivenerStats(fileContent);
       if (processedData.dailyStats.length === 0) {
-        throw new Error("No valid data found in the file. Please check the file format.");
+        throw new Error(NO_DATA_ERROR);
       }
       setStats(processedData);
     } catch (e) {
@@ -61,6 +66,7 @@ const App: React.FC = () => {
   const Footer = () => (
     <footer className="text-center p-4 text-xs text-gray-500 mt-auto">
       <p>Export your writing history from Scrivener via 'Project' &gt; 'Writing History...' &gt; 'Export'.</p>
+      <p className="mt-2 text-emerald-400/70">🔒 All data is processed locally in your browser. Nothing is uploaded or shared.</p>
     </footer>
   );
 
@@ -71,13 +77,13 @@ const App: React.FC = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64">
              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-emerald-500"></div>
-             <p className="mt-4 text-lg">Analyzing your masterpiece...</p>
+             <p className="mt-4 text-lg">{LOADING_MESSAGE}</p>
           </div>
         ) : error ? (
           <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg relative flex flex-col items-center" role="alert">
             <div className="flex items-center">
               <ExclamationTriangleIcon className="h-6 w-6 mr-2" />
-              <strong className="font-bold">Error!</strong>
+              <strong className="font-bold">{ERROR_TITLE}</strong>
             </div>
             <span className="block sm:inline mt-2">{error}</span>
             <button

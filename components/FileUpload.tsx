@@ -46,9 +46,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         <label htmlFor="file-upload" className="flex flex-col items-center justify-center cursor-pointer space-y-4">
           <DocumentArrowUpIcon className="h-16 w-16 text-gray-400" />
           <p className="text-xl font-semibold text-center">
-            <span className="text-emerald-400">Upload your file</span> or drag and drop
+            <span className="text-emerald-400">Select your file</span> or drag and drop
           </p>
           <p className="text-gray-400 text-sm">Upload your Scrivener Writing History (.txt or .csv)</p>
+          <p className="text-emerald-400/70 text-xs mt-2">🔒 Your data stays on your computer - processed locally in your browser</p>
         </label>
       </div>
       <div className="mt-8 text-gray-400 max-w-2xl mx-auto w-full">

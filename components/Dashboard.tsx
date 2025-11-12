@@ -24,6 +24,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
     effectiveEndDate
   } = stats;
   
+  // Calculate total days in the writing period
+  const totalDaysInPeriod = firstDay && effectiveEndDate
+    ? Math.ceil((effectiveEndDate.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    : 0;
+  
   const formatDate = (date: Date | null) => {
     if (!date) return 'N/A';
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -80,7 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
           title="Writing Rate" 
           value={`${productivityRate ?? 0}%`} 
           icon={<ChartBarIcon className="h-8 w-8 text-emerald-400" />} 
-          subtitle={`${writingDays} of ${Math.ceil((effectiveEndDate && firstDay ? (effectiveEndDate.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24) : 0) + 1)} days active`}
+          subtitle={`${writingDays} of ${totalDaysInPeriod} days active`}
         />
       </div>
       
