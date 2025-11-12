@@ -70,27 +70,26 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
 
         const monthLabelPositions = monthLabels.map((label, index) => {
             const firstOfMonth = new Date(Date.UTC(year, index, 1));
-            
-            // Find the week this day belongs to
-            const diffFromGridStart = firstOfMonth.getTime() - daysInGrid[0].getTime();
-            if (diffFromGridStart < 0) return null; // Month starts before our grid begins
-            
-            const dayIndexInGrid = Math.floor(diffFromGridStart / (1000 * 60 * 60 * 24));
-            let weekIndex = Math.floor(dayIndexInGrid / 7);
 
-            // Find the first day of this week to check its month
-            const firstDayOfCalculatedWeek = daysInGrid[weekIndex * 7];
-
-            // If the week starts in the previous month, and the month doesn't start on a Sunday,
-            // it's ambiguous, so push the label to the next week for clarity.
-            if (firstDayOfCalculatedWeek && firstDayOfCalculatedWeek.getUTCMonth() !== index && firstOfMonth.getUTCDay() !== 0) {
-                weekIndex++;
+            // Find which week column contains the 1st of the month.
+            // The grid starts on the Sunday before/on Jan 1st and flows in columns.
+            let weekIndex = -1;
+            for (let w = 0; w < 53; w++) {
+              const weekStart = daysInGrid[w * 7];
+              const weekEnd = daysInGrid[w * 7 + 6];
+              if (!weekStart || !weekEnd) continue;
+              
+              // Check if the 1st of this month falls within this week column
+              if (firstOfMonth >= weekStart && firstOfMonth <= weekEnd) {
+                weekIndex = w;
+                break;
+              }
             }
 
             if (weekIndex < 0 || weekIndex >= 53) return null;
 
             return { label, week: weekIndex };
-        }).filter((p): p is {label: string; week: number;} => p !== null);
+          }).filter((p): p is {label: string; week: number;} => p !== null);
 
 
         return (
@@ -101,15 +100,20 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
                     {dayLabels.map((label, index) => <div key={index} className="h-4 leading-4">{label}</div>)}
                 </div>
                 <div className="relative flex-grow">
-                    <div className="absolute top-0 left-0 h-6 w-full">
-                        {monthLabelPositions.map(pos => (
-                            <div key={pos.label} className="absolute text-xs text-gray-400" style={{ left: `${pos.week * 1.25}rem` }}>{pos.label}</div>
-                        ))}
+                    <div className="absolute top-0 left-0 h-6 w-full flex gap-1">
+                        {Array.from({ length: 53 }).map((_, weekIdx) => {
+                            const monthLabel = monthLabelPositions.find(p => p.week === weekIdx);
+                            return (
+                                <div key={weekIdx} className="w-4 flex-shrink-0 text-xs text-gray-400">
+                                    {monthLabel ? monthLabel.label : ''}
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="grid grid-flow-col grid-rows-7 gap-1 mt-6">
-                      {daysInGrid.map(date => {
+                    <div className="grid grid-rows-7 gap-1 mt-6" style={{ gridTemplateColumns: 'repeat(53, 1rem)', gridAutoFlow: 'column' }}>
+                      {daysInGrid.slice(0, 53 * 7).map((date, idx) => {
                         if (date.getUTCFullYear() !== year) {
-                          return <div key={date.toISOString()} className="h-4 w-4 bg-transparent rounded-sm" />;
+                          return <div key={`empty-${idx}`} className="h-4 w-4 bg-transparent rounded-sm" />;
                         }
 
                         const dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;

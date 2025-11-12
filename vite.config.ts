@@ -8,6 +8,17 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        // Enable HMR explicitly and leave room to customize host/port for
+        // remote or containerized setups. The overlay is enabled so runtime
+        // errors show in the browser during development.
+        hmr: {
+          overlay: true,
+          // For most local setups no extra config is needed. If you're
+          // serving the dev server on a different host (docker, VM, remote),
+          // you can set `host` and `clientPort` here, e.g.:
+          // host: 'localhost',
+          // clientPort: 3000,
+        },
       },
       plugins: [react()],
       define: {

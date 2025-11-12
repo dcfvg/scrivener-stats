@@ -18,6 +18,7 @@ export interface ProcessedStats {
   firstDay: Date | null;
   lastDay: Date | null;
   writingDays: number;
+  productivityRate: number;
   calendarData: { [key: string]: number };
   streakDistribution: { [length: string]: number };
 }

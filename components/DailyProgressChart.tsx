@@ -1,25 +1,85 @@
 import React, { useMemo, useState } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { WritingDayStat } from '../types';
 
 interface DailyProgressChartProps {
   data: WritingDayStat[];
 }
 
-const Square = (props: any) => {
-  const { cx, cy } = props;
-  if (cx === null || cy === null) {
-    return null;
-  }
-  return <rect x={cx - 4} y={cy - 4} width={8} height={8} fill="#34D399" className="opacity-75" />;
-};
-
-
 const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
   const [view, setView] = useState<'overview' | 'streaks'>('overview');
 
-  const { monthlyData, dailyData } = useMemo(() => {
-    const monthMap: { [key: string]: { month: string; sessions: number; netWords: number; } } = {};
+  // Custom bar shape that renders streaks as segments
+  const StreakSegmentBar = (props: any) => {
+    const { x, y, width, height, payload } = props;
+    if (!payload || !payload.streaks) return null;
+    
+    const segments: React.ReactElement[] = [];
+    // Y axis is always 0-31 in both modes
+    // When reversed, height is negative - use absolute value
+    const absHeight = Math.abs(height);
+    const pixelsPerDay = absHeight / 31;
+    
+    // When height is negative (reversed axis), y is at the BOTTOM
+    // The top is at y + height (e.g., 201 + (-196) = 5)
+    const chartTop = height < 0 ? y + height : y;
+    const chartBottom = height < 0 ? y : y + height;
+    
+    if (view === 'overview') {
+      // Overview: stack all streak segments from bottom (day 0)
+      let currentDay = 0; // Start stacking from day 0
+      
+      payload.streaks.forEach((streak: any) => {
+        const segmentY = chartBottom - ((currentDay + streak.length) * pixelsPerDay); // Top of segment
+        const segmentHeight = streak.length * pixelsPerDay;
+        
+        segments.push(
+          <rect
+            key={`${payload.month}-${streak.startDay}-${streak.endDay}`}
+            x={x}
+            y={segmentY}
+            width={width}
+            height={segmentHeight}
+            fill="#4A5568"
+          />
+        );
+        
+        currentDay += streak.length; // Stack next segment on top
+      });
+      
+      return <g>{segments}</g>;
+    } else {
+      // Streaks: draw each streak segment positioned at its actual day in the month
+      // Y axis is reversed: day 1 at top, day 31 at bottom
+      // chartTop is the visual top (day 1), position segments from there
+      payload.streaks.forEach((streak: any) => {
+        const segmentY = chartTop + ((streak.startDay - 1) * pixelsPerDay);
+        const segmentHeight = streak.length * pixelsPerDay;
+        
+        segments.push(
+          <rect
+            key={`${payload.month}-${streak.startDay}-${streak.endDay}`}
+            x={x}
+            y={segmentY}
+            width={width}
+            height={segmentHeight}
+            fill="#4A5568"
+          />
+        );
+      });
+      
+      return <g>{segments}</g>;
+    }
+  };
+
+  const chartData = useMemo(() => {
+    // Group data by month
+    const monthMap: { [key: string]: { 
+      month: string; 
+      totalDays: number;
+      streaks: Array<{ startDay: number; endDay: number; length: number }>;
+      netWords: number;
+    } } = {};
     
     data.forEach(item => {
       const date = new Date(item.date);
@@ -29,80 +89,125 @@ const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
       if (!monthMap[monthKey]) {
         monthMap[monthKey] = {
           month: monthLabel,
-          sessions: 0,
+          totalDays: 0,
+          streaks: [],
           netWords: 0,
         };
       }
-      monthMap[monthKey].sessions += 1;
+      monthMap[monthKey].totalDays += 1;
       monthMap[monthKey].netWords += item.wordsNet;
     });
     
-    const sortedKeys = Object.keys(monthMap).sort();
+    // Build day arrays for each month to identify streaks
+    const monthDays: { [key: string]: number[] } = {};
+    data.forEach(item => {
+      const date = new Date(item.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+      if (!monthDays[monthKey]) monthDays[monthKey] = [];
+      monthDays[monthKey].push(date.getDate());
+    });
     
+    // Identify consecutive streaks in each month
+    Object.keys(monthDays).forEach(monthKey => {
+      const days = monthDays[monthKey].sort((a, b) => a - b);
+      let currentStreak: number[] = [days[0]];
+      
+      for (let i = 1; i < days.length; i++) {
+        if (days[i] === days[i-1] + 1) {
+          currentStreak.push(days[i]);
+        } else {
+          monthMap[monthKey].streaks.push({
+            startDay: currentStreak[0],
+            endDay: currentStreak[currentStreak.length - 1],
+            length: currentStreak.length,
+          });
+          currentStreak = [days[i]];
+        }
+      }
+      if (currentStreak.length > 0) {
+        monthMap[monthKey].streaks.push({
+          startDay: currentStreak[0],
+          endDay: currentStreak[currentStreak.length - 1],
+          length: currentStreak.length,
+        });
+      }
+    });
+    
+    const sortedKeys = Object.keys(monthMap).sort();
     let cumulativeWords = 0;
-    const finalMonthlyData = sortedKeys.map(key => {
+    
+    // Create ONE row per month with all streaks as separate bar segments
+    return sortedKeys.map(key => {
       cumulativeWords += monthMap[key].netWords;
-      return {
+      
+      const monthData: any = {
         month: monthMap[key].month,
-        'Writing Sessions': monthMap[key].sessions,
-        'Cumulative Words': cumulativeWords,
+        totalDays: monthMap[key].totalDays,
+        cumulativeWords: cumulativeWords,
+        streaks: monthMap[key].streaks,
       };
+      
+      // Always use 31 as bar value so Y axis is consistent (0-31) in both modes
+      monthData.barValue = 31;
+      
+      return monthData;
     });
-
-    const finalDailyData = data.map(stat => {
-      const date = new Date(stat.date);
-      return {
-          month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
-          day: date.getDate(),
-          words: stat.wordsNet,
-          date: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      };
-    });
-
-    return { monthlyData: finalMonthlyData, dailyData: finalDailyData };
-  }, [data]);
+  }, [data, view]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      // For streak/scatter view
-      if (payload[0].dataKey === 'day') {
-        const dataPoint = payload[0].payload;
-        return (
-          <div className="bg-gray-900/80 backdrop-blur-sm p-3 border border-gray-600 rounded-lg shadow-lg">
-            <p className="font-bold text-emerald-400">{dataPoint.date}</p>
-            <p className="text-gray-300">Net Words: {dataPoint.words.toLocaleString()}</p>
-          </div>
-        );
-      }
-      // For overview view
+      const dataPoint = payload[0]?.payload;
+      
       return (
-        <div className="bg-gray-900/80 backdrop-blur-sm p-3 border border-gray-600 rounded-lg shadow-lg">
-          <p className="font-bold text-emerald-400">{label}</p>
-          {payload.map((pld) => (
-            <p key={pld.dataKey} style={{ color: pld.color }}>
-              {`${pld.dataKey}: ${pld.value.toLocaleString()}`}
+        <div className="bg-gray-900/95 backdrop-blur-sm p-3 border border-gray-600 rounded-lg shadow-lg">
+          <p className="font-bold text-emerald-400 mb-2">{label}</p>
+          
+          {view === 'streaks' && dataPoint?.streaks ? (
+            <>
+              <p className="text-sm text-gray-300 mb-1">
+                Writing Days: {dataPoint.totalDays}
+              </p>
+              <div className="text-xs text-gray-400 mt-2">
+                <p className="font-semibold mb-1">Streaks:</p>
+                {dataPoint.streaks.map((streak: any, idx: number) => (
+                  <p key={idx}>
+                    {streak.length === 1 
+                      ? `Day ${streak.startDay}`
+                      : `Days ${streak.startDay}-${streak.endDay} (${streak.length} days)`
+                    }
+                  </p>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-300">
+              Writing Days: {dataPoint?.totalDays || 0}
             </p>
-          ))}
+          )}
+          
+          {payload.find((p: any) => p.dataKey === 'cumulativeWords') && (
+            <p className="text-sm mt-2" style={{ color: '#34D399' }}>
+              Cumulative Words: {dataPoint?.cumulativeWords?.toLocaleString() || 0}
+            </p>
+          )}
         </div>
       );
     }
     return null;
   };
 
-  // FIX: Define props for ToggleButton using an interface to avoid potential type inference issues.
   interface ToggleButtonProps {
     active: boolean;
     onClick: () => void;
     children: React.ReactNode;
   }
 
-  // FIX: Explicitly typing the component with React.FC aligns it with project conventions and resolves a type inference issue where 'children' was not being recognized.
   const ToggleButton: React.FC<ToggleButtonProps> = ({ active, onClick, children }) => (
     <button
       onClick={onClick}
-      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
         active
-          ? 'bg-emerald-500 text-white'
+          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
           : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
       }`}
     >
@@ -123,7 +228,7 @@ const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
       <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={monthlyData}
+            data={chartData}
             margin={{
               top: 5,
               right: 30,
@@ -142,44 +247,86 @@ const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
               interval="preserveStartEnd"
             />
             
-            {view === 'streaks' ? (
-              <YAxis 
-                yAxisId="left" 
-                orientation="left" 
-                stroke="#A0AEC0" 
-                tick={{ fontSize: 12 }} 
-                label={{ value: 'Day of Month', angle: -90, position: 'insideLeft', fill: '#A0AEC0', dy: 40 }}
-                domain={[1, 31]}
-                ticks={[1, 5, 10, 15, 20, 25, 31]}
-                reversed={true}
-              />
-            ) : (
-              <YAxis 
-                yAxisId="left" 
-                orientation="left" 
-                stroke="#A0AEC0" 
-                tick={{ fontSize: 12 }} 
-                allowDecimals={false}
-                label={{ value: 'Writing Sessions', angle: -90, position: 'insideLeft', fill: '#A0AEC0', dy: 40 }} 
-              />
-            )}
+            <YAxis 
+              yAxisId="left" 
+              orientation="left" 
+              stroke="#A0AEC0" 
+              tick={{ fontSize: 12 }}
+              allowDecimals={false}
+              domain={[0, 31]}
+              ticks={[1, 5, 10, 15, 20, 25, 31]}
+              reversed={view === 'streaks'}
+              label={{ 
+                value: view === 'streaks' ? 'Day of Month' : 'Days (Stacked)', 
+                angle: -90, 
+                position: 'insideLeft', 
+                fill: '#A0AEC0', 
+                dy: 40 
+              }} 
+            />
             
             <YAxis 
               yAxisId="right" 
               orientation="right" 
               stroke="#34D399" 
               tick={{ fontSize: 12 }} 
-              label={{ value: 'Cumulative Words', angle: 90, position: 'insideRight', fill: '#34D399', dy: -60 }} 
+              label={{ 
+                value: 'Cumulative Words', 
+                angle: 90, 
+                position: 'insideRight', 
+                fill: '#34D399', 
+                dy: -60 
+              }} 
             />
 
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(113, 224, 183, 0.1)' }}/>
-            <Legend wrapperStyle={{ fontSize: '14px', paddingTop: '20px' }} />
+            <Tooltip 
+              content={<CustomTooltip />} 
+              cursor={{ fill: 'rgba(113, 224, 183, 0.1)' }}
+              wrapperStyle={{ zIndex: 1000 }}
+            />
+            <Legend 
+              wrapperStyle={{ fontSize: '14px', paddingTop: '20px' }}
+              formatter={(value) => {
+                if (value === 'position') return 'Writing Streaks';
+                if (value === 'cumulativeWords') return 'Cumulative Words';
+                return value;
+              }}
+            />
             
-            {view === 'overview' && <Bar yAxisId="left" dataKey="Writing Sessions" fill="#4A5568" name="Writing Sessions" />}
+            {/* Reference lines for all months */}
+            {chartData.map((item, index) => (
+              <ReferenceLine
+                key={`ref-${item.month}`}
+                x={item.month}
+                stroke="#4A5568"
+                strokeDasharray="3 3"
+                yAxisId="left"
+              />
+            ))}
             
-            {view === 'streaks' && <Scatter yAxisId="left" data={dailyData} dataKey="day" name="Writing Days" shape={<Square />} />}
+            {/* Single bar per month with custom shape that renders streak segments */}
+            <Bar 
+              yAxisId="left" 
+              dataKey="barValue"
+              fill="#4A5568" 
+              name="Writing Streaks"
+              shape={<StreakSegmentBar />}
+              isAnimationActive={false}
+            />
             
-            <Line yAxisId="right" type="monotone" dataKey="Cumulative Words" stroke="#34D399" strokeWidth={2} dot={{ r: 4, strokeWidth: 2 }} name="Cumulative Words" />
+            {/* Cumulative line always visible */}
+            <Line 
+              yAxisId="right" 
+              type="monotone" 
+              dataKey="cumulativeWords" 
+              stroke="#34D399" 
+              strokeWidth={2} 
+              dot={{ r: 4, strokeWidth: 2 }} 
+              name="Cumulative Words"
+              isAnimationActive={true}
+              animationDuration={600}
+              animationEasing="ease-in-out"
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

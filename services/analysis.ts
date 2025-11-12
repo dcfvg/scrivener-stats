@@ -215,6 +215,7 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
       firstDay: null,
       lastDay: null,
       writingDays: 0,
+      productivityRate: 0,
       calendarData: {},
       streakDistribution: {},
     };
@@ -236,11 +237,18 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
   
   const calendarData: { [key: string]: number } = {};
   dailyStats.forEach(day => {
-    const date = day.date;
-    // Timezone-safe key generation
-    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const date = day.date;
+  // Use UTC-based key generation to avoid timezone mismatches between
+  // processing and the CalendarHeatmap component which uses UTC dates.
+  const dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
     calendarData[dateKey] = (calendarData[dateKey] || 0) + day.wordsNet;
   });
+
+  // Calculate productivity rate (percentage of days with writing activity)
+  const totalDays = firstDay && lastDay 
+    ? Math.ceil((lastDay.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    : 0;
+  const productivityRate = totalDays > 0 ? Math.round((writingDays / totalDays) * 100) : 0;
 
   return {
     dailyStats,
@@ -251,6 +259,7 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
     firstDay,
     lastDay,
     writingDays,
+    productivityRate,
     calendarData,
     streakDistribution,
   };
