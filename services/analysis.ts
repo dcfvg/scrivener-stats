@@ -1,10 +1,8 @@
 import { WritingDayStat, ProcessedStats } from '../types';
+import Papa from 'papaparse';
 
-// Helper for CSV format
-interface DailyTotal {
-  date: Date;
-  totalWords: number;
-}
+// TSV format constants
+const TSV_MIN_COLUMNS = 4; // Date, Added, Subtracted, Net
 
 // Function to parse the TSV format from "Writing History..."
 function parseTsvFormat(lines: string[]): WritingDayStat[] {
@@ -12,13 +10,25 @@ function parseTsvFormat(lines: string[]): WritingDayStat[] {
   // Skip header
   for (let i = 1; i < lines.length; i++) {
     const columns = lines[i].split('\t');
-    if (columns.length < 4) continue;
-
-    const date = new Date(columns[0]);
-    if (isNaN(date.getTime())) {
-      console.warn(`Skipping invalid date format in TSV: ${columns[0]}`);
+    if (columns.length < TSV_MIN_COLUMNS) {
+      console.warn(`Row ${i + 1}: Expected at least ${TSV_MIN_COLUMNS} columns, got ${columns.length}`);
       continue;
     }
+
+    // Parse date in UTC to match CSV format behavior
+    const dateStr = columns[0].trim();
+    const parsedDate = new Date(dateStr);
+    if (isNaN(parsedDate.getTime())) {
+      console.warn(`Skipping invalid date format in TSV row ${i + 1}: ${dateStr}`);
+      continue;
+    }
+    
+    // Convert to UTC for consistency
+    const date = new Date(Date.UTC(
+      parsedDate.getFullYear(),
+      parsedDate.getMonth(),
+      parsedDate.getDate()
+    ));
 
     const wordsAdded = parseInt(columns[1], 10);
     const wordsSubtracted = parseInt(columns[2], 10);
@@ -26,65 +36,90 @@ function parseTsvFormat(lines: string[]): WritingDayStat[] {
 
     if (!isNaN(wordsAdded) && !isNaN(wordsSubtracted) && !isNaN(wordsNet)) {
       stats.push({ date, wordsAdded, wordsSubtracted, wordsNet });
+    } else {
+      console.warn(`Row ${i + 1}: Invalid numeric values - Added: ${columns[1]}, Subtracted: ${columns[2]}, Net: ${columns[3]}`);
     }
   }
   return stats;
 }
 
 // Function to parse the CSV format from "Project Statistics" or similar exports
-function parseCsvFormat(lines: string[]): WritingDayStat[] {
+function parseCsvFormat(fileContent: string): WritingDayStat[] {
   const stats: WritingDayStat[] = [];
   
-  // Find column index for Date and Words (Total) from header, removing potential quotes
-  const headerColumns = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-  const dateIndex = headerColumns.indexOf('date');
-  let wordsNetIndex = headerColumns.indexOf('words (total)');
-  // Fallback for different header naming conventions
-  if (wordsNetIndex === -1) {
-    wordsNetIndex = headerColumns.indexOf('words');
+  // Use PapaParse to parse CSV properly
+  const parsed = Papa.parse(fileContent, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (header: string) => header.trim().toLowerCase()
+  });
+
+  if (parsed.errors.length > 0) {
+    console.warn('CSV parsing warnings:', parsed.errors);
   }
 
-
-  if (dateIndex === -1 || wordsNetIndex === -1) {
-    throw new Error("CSV file must contain 'Date' and a word count column like 'Words (Total)'.");
+  // Find the word count column with multiple possible names
+  const possibleWordColumns = ['words (total)', 'words', 'total words', 'word count'];
+  let wordColumn: string | undefined;
+  
+  if (parsed.data.length > 0) {
+    const firstRow = parsed.data[0] as any;
+    const columns = Object.keys(firstRow);
+    
+    for (const colName of possibleWordColumns) {
+      if (columns.includes(colName)) {
+        wordColumn = colName;
+        break;
+      }
+    }
   }
 
-  // Skip header
-  for (let i = 1; i < lines.length; i++) {
-    const columns = lines[i].split(',');
-    if (columns.length <= Math.max(dateIndex, wordsNetIndex)) continue;
+  if (!wordColumn) {
+    throw new Error("CSV file must contain a word count column like 'Words (Total)', 'Words', or 'Total Words'.");
+  }
 
-    const dateStr = columns[dateIndex].replace(/"/g, '').trim();
+  // Parse each row
+  parsed.data.forEach((row: any, index: number) => {
+    if (!row.date) {
+      console.warn(`CSV row ${index + 2}: Missing date, skipping`);
+      return;
+    }
+
+    const dateStr = row.date.trim();
     const parts = dateStr.split('/');
     if (parts.length !== 3) {
-      console.warn(`Skipping invalid date format in CSV: ${dateStr}`);
-      continue;
+      console.warn(`CSV row ${index + 2}: Invalid date format '${dateStr}', expected DD/MM/YYYY`);
+      return;
     }
+
     // Parse DD/MM/YYYY format - use UTC to avoid timezone issues
-    const [day, month, year] = parts.map(p => parseInt(p, 10));
+    const [day, month, year] = parts.map((p: string) => parseInt(p, 10));
     const date = new Date(Date.UTC(year, month - 1, day));
 
     if (isNaN(date.getTime())) {
-      console.warn(`Skipping invalid date from parsed parts: ${dateStr}`);
-      continue;
+      console.warn(`CSV row ${index + 2}: Failed to parse date from '${dateStr}'`);
+      return;
     }
 
-    const wordsNet = parseInt(columns[wordsNetIndex], 10);
-    if (!isNaN(wordsNet)) {
-      stats.push({
-        date,
-        wordsNet: wordsNet,
-        wordsAdded: wordsNet > 0 ? wordsNet : 0,
-        wordsSubtracted: wordsNet < 0 ? -wordsNet : 0,
-      });
+    const wordsNet = parseInt(row[wordColumn], 10);
+    if (isNaN(wordsNet)) {
+      console.warn(`CSV row ${index + 2}: Invalid word count '${row[wordColumn]}'`);
+      return;
     }
-  }
+
+    stats.push({
+      date,
+      wordsNet: wordsNet,
+      wordsAdded: wordsNet > 0 ? wordsNet : 0,
+      wordsSubtracted: wordsNet < 0 ? -wordsNet : 0,
+    });
+  });
+
   return stats;
 }
 
 
 function parseScrivenerStats(fileContent: string): WritingDayStat[] {
-  // Trim content and filter out empty lines
   const lines = fileContent.trim().split(/\r?\n/).filter(line => line.trim() !== '');
   
   if (lines.length <= 1) {
@@ -93,31 +128,40 @@ function parseScrivenerStats(fileContent: string): WritingDayStat[] {
   
   const headerLine = lines[0].toLowerCase();
   
-  let stats: WritingDayStat[];
-
-  // Detect format based on header content
+  // Try TSV format first (Writing History export)
   if (headerLine.includes('\t') && (headerLine.includes('added') || headerLine.includes('subtracted'))) {
-    stats = parseTsvFormat(lines);
-  } else if (headerLine.includes(',') && (headerLine.includes('words (total)') || headerLine.includes('words'))) {
-    stats = parseCsvFormat(lines);
-  } else {
-    // Fallback detection based on separator in first data line
-    if (lines.length > 1 && lines[1].includes('\t')) {
-        stats = parseTsvFormat(lines);
-    } else if (lines.length > 1 && lines[1].includes(',')) {
-        // Assume CSV if header is non-standard but data is comma-separated
-        try {
-            stats = parseCsvFormat(lines);
-        } catch(e) {
-             throw new Error("Unrecognized file format. Please provide a tab-separated export from 'Writing History...' or a comma-separated export with 'Date' and a word count column.");
-        }
-    } else {
-        throw new Error("Unrecognized file format. Please provide a tab-separated export from 'Writing History...' or a comma-separated export with 'Date' and a word count column.");
+    return parseTsvFormat(lines).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+  
+  // Try CSV format (Project Statistics export)
+  if (headerLine.includes(',') && (headerLine.includes('words (total)') || headerLine.includes('words'))) {
+    return parseCsvFormat(fileContent).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+  
+  // Fallback: Try to detect based on data line separator
+  if (lines.length > 1) {
+    if (lines[1].includes('\t')) {
+      try {
+        return parseTsvFormat(lines).sort((a, b) => a.date.getTime() - b.date.getTime());
+      } catch (error) {
+        console.error('TSV parsing failed:', error);
+      }
+    }
+    
+    if (lines[1].includes(',')) {
+      try {
+        return parseCsvFormat(fileContent).sort((a, b) => a.date.getTime() - b.date.getTime());
+      } catch (error) {
+        console.error('CSV parsing failed:', error);
+      }
     }
   }
-
-  // Sort by date ascending (final sort after parsing)
-  return stats.sort((a, b) => a.date.getTime() - b.date.getTime());
+  
+  throw new Error(
+    "Unrecognized file format. Please provide:\n" +
+    "- A tab-separated export from 'Writing History...' with columns: Date, Added, Subtracted, Net\n" +
+    "- A comma-separated export from 'Project Statistics' with Date and word count columns"
+  );
 }
 
 function calculateLongestStreak(stats: WritingDayStat[]): { length: number; startDate: Date | null; endDate: Date | null; } {

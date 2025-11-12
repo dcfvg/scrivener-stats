@@ -44,15 +44,15 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
         });
       }
     } else {
-      // Academic years (October to September)
-      const startYear = firstDate.getUTCMonth() >= 9 ? firstDate.getUTCFullYear() : firstDate.getUTCFullYear() - 1;
-      const endYear = lastDate.getUTCMonth() >= 9 ? lastDate.getUTCFullYear() : lastDate.getUTCFullYear() - 1;
+      // Academic years (September to August)
+      const startYear = firstDate.getUTCMonth() >= 8 ? firstDate.getUTCFullYear() : firstDate.getUTCFullYear() - 1;
+      const endYear = lastDate.getUTCMonth() >= 8 ? lastDate.getUTCFullYear() : lastDate.getUTCFullYear() - 1;
       
       for (let year = endYear; year >= startYear; year--) {
         periods.push({
           label: `${year}-${year + 1}`,
-          startDate: new Date(Date.UTC(year, 9, 1)), // October 1st
-          endDate: new Date(Date.UTC(year + 1, 8, 30)) // September 30th
+          startDate: new Date(Date.UTC(year, 8, 1)), // September 1st
+          endDate: new Date(Date.UTC(year + 1, 7, 31)) // August 31st
         });
       }
     }
@@ -92,8 +92,8 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
   // Get month labels in the correct order based on year type
   const getOrderedMonthLabels = () => {
     if (yearType === 'academic') {
-      // Academic year: Oct, Nov, Dec, Jan, Feb, ..., Sep
-      return ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+      // Academic year: Sep, Oct, Nov, Dec, Jan, Feb, ..., Aug
+      return ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
     }
     return monthLabels; // Calendar year: Jan, Feb, ..., Dec
   };
@@ -160,9 +160,9 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
             let monthIndex: number;
             
             if (yearType === 'academic') {
-              // For academic year: index 0=Oct, 1=Nov, 2=Dec, 3=Jan(next year), etc.
-              monthIndex = (index + 9) % 12; // Oct=9, Nov=10, Dec=11, Jan=0, Feb=1, etc.
-              if (index >= 3) { // Jan-Sep are in the next calendar year
+              // For academic year: index 0=Sep, 1=Oct, 2=Nov, 3=Dec, 4=Jan(next year), etc.
+              monthIndex = (index + 8) % 12; // Sep=8, Oct=9, Nov=10, Dec=11, Jan=0, Feb=1, etc.
+              if (index >= 4) { // Jan-Aug are in the next calendar year
                 monthYear = yearStartDate.getUTCFullYear() + 1;
               }
             } else {
