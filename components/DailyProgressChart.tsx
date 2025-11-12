@@ -225,8 +225,8 @@ const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
           Streaks
         </ToggleButton>
       </div>
-      <div className="flex-grow">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="flex-grow min-h-[300px]">
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <ComposedChart
             data={chartData}
             margin={{

@@ -20,7 +20,8 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
     writingDays,
     productivityRate,
     firstDay,
-    lastDay
+    lastDay,
+    effectiveEndDate
   } = stats;
   
   const formatDate = (date: Date | null) => {
@@ -76,10 +77,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
           subtitle={formatDate(mostProductiveDay?.date)}
         />
         <StatCard 
-          title="Productivity Rate" 
+          title="Writing Rate" 
           value={`${productivityRate ?? 0}%`} 
           icon={<ChartBarIcon className="h-8 w-8 text-emerald-400" />} 
-          subtitle={`${writingDays} of ${Math.ceil((lastDay && firstDay ? (lastDay.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24) : 0) + 1)} days active`}
+          subtitle={`${writingDays} of ${Math.ceil((effectiveEndDate && firstDay ? (effectiveEndDate.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24) : 0) + 1)} days active`}
         />
       </div>
       

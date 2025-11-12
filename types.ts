@@ -17,6 +17,7 @@ export interface ProcessedStats {
   mostProductiveDay: WritingDayStat | null;
   firstDay: Date | null;
   lastDay: Date | null;
+  effectiveEndDate: Date | null; // For productivity calculation (today if period is ongoing)
   writingDays: number;
   productivityRate: number;
   calendarData: { [key: string]: number };

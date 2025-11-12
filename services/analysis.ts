@@ -60,9 +60,9 @@ function parseCsvFormat(lines: string[]): WritingDayStat[] {
       console.warn(`Skipping invalid date format in CSV: ${dateStr}`);
       continue;
     }
-    // Parse DD/MM/YYYY format
+    // Parse DD/MM/YYYY format - use UTC to avoid timezone issues
     const [day, month, year] = parts.map(p => parseInt(p, 10));
-    const date = new Date(year, month - 1, day);
+    const date = new Date(Date.UTC(year, month - 1, day));
 
     if (isNaN(date.getTime())) {
       console.warn(`Skipping invalid date from parsed parts: ${dateStr}`);
@@ -150,15 +150,15 @@ function calculateLongestStreak(stats: WritingDayStat[]): { length: number; star
 
     if (diffDays === 1) {
       currentStreak++;
+      // Update longest if current streak is now longer
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+        longestStreakStartDate = currentStreakStartDate;
+        longestStreakEndDate = currentDate;
+      }
     } else {
       currentStreak = 1;
       currentStreakStartDate = currentDate;
-    }
-
-    if (currentStreak > longestStreak) {
-      longestStreak = currentStreak;
-      longestStreakStartDate = currentStreakStartDate;
-      longestStreakEndDate = currentDate;
     }
   }
 
@@ -214,6 +214,7 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
       mostProductiveDay: null,
       firstDay: null,
       lastDay: null,
+      effectiveEndDate: null,
       writingDays: 0,
       productivityRate: 0,
       calendarData: {},
@@ -221,32 +222,38 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
     };
   }
 
-  const writingDaysWithWords = dailyStats.filter(day => day.wordsNet > 0);
-  const writingDays = writingDaysWithWords.length;
+  // Count all days with any writing activity (including negative net words from editing/deleting)
+  // All days in the export represent active writing sessions
+  const writingDays = dailyStats.length;
   
   const totalWords = dailyStats.reduce((sum, day) => sum + day.wordsNet, 0);
   const averageWordsPerDay = writingDays > 0 ? Math.round(totalWords / writingDays) : 0;
   
-  const longestStreak = calculateLongestStreak(writingDaysWithWords);
-  const streakDistribution = calculateStreakDistribution(writingDaysWithWords);
+  // Use all days for streak calculation, not just positive word days
+  const longestStreak = calculateLongestStreak(dailyStats);
+  const streakDistribution = calculateStreakDistribution(dailyStats);
 
   const mostProductiveDay = [...dailyStats].sort((a, b) => b.wordsNet - a.wordsNet)[0] || null;
 
   const firstDay = dailyStats[0]?.date || null;
   const lastDay = dailyStats[dailyStats.length - 1]?.date || null;
   
+  // Build calendar data using UTC dates for consistency
   const calendarData: { [key: string]: number } = {};
   dailyStats.forEach(day => {
-  const date = day.date;
-  // Use UTC-based key generation to avoid timezone mismatches between
-  // processing and the CalendarHeatmap component which uses UTC dates.
-  const dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    const date = day.date;
+    const dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
     calendarData[dateKey] = (calendarData[dateKey] || 0) + day.wordsNet;
   });
 
   // Calculate productivity rate (percentage of days with writing activity)
-  const totalDays = firstDay && lastDay 
-    ? Math.ceil((lastDay.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  // For the current period, only count days up to today if still writing
+  const today = new Date();
+  const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const effectiveEndDate = (lastDay && lastDay > todayUTC) ? todayUTC : lastDay;
+  
+  const totalDays = firstDay && effectiveEndDate
+    ? Math.ceil((effectiveEndDate.getTime() - firstDay.getTime()) / (1000 * 60 * 60 * 24)) + 1
     : 0;
   const productivityRate = totalDays > 0 ? Math.round((writingDays / totalDays) * 100) : 0;
 
@@ -258,6 +265,7 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
     mostProductiveDay,
     firstDay,
     lastDay,
+    effectiveEndDate,
     writingDays,
     productivityRate,
     calendarData,
