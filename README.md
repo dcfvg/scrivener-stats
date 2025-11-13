@@ -17,7 +17,7 @@ A beautiful, privacy-focused web application to visualize your Scrivener writing
 ## 🚀 Quick Start (For Users)
 
 ### Option 1: Use Online (Recommended)
-Simply visit the hosted version at: [Your deployment URL]
+Simply visit the hosted version at: **https://[your-github-username].github.io/scrivener-stats/**
 
 ### Option 2: Run Locally
 
