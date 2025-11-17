@@ -46,6 +46,32 @@ function parseTsvFormat(lines: string[]): WritingDayStat[] {
 // Function to parse the CSV format from "Project Statistics" or similar exports
 function parseCsvFormat(fileContent: string): WritingDayStat[] {
   const stats: WritingDayStat[] = [];
+  const parseFlexibleDate = (raw: string): Date | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    // ISO like 2020-07-07
+    if (trimmed.includes('-')) {
+      const iso = new Date(trimmed);
+      if (!isNaN(iso.getTime())) {
+        // Normalize to UTC date only
+        return new Date(Date.UTC(iso.getFullYear(), iso.getMonth(), iso.getDate()));
+      }
+    }
+    // DD/MM/YYYY fallback
+    const parts = trimmed.split('/');
+    if (parts.length === 3) {
+      const [dayStr, monthStr, yearStr] = parts;
+      const day = parseInt(dayStr, 10);
+      const month = parseInt(monthStr, 10) - 1;
+      const year = parseInt(yearStr, 10);
+      const date = new Date(Date.UTC(year, month, day));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    const fallback = new Date(trimmed);
+    return isNaN(fallback.getTime()) ? null : fallback;
+  };
   
   // Use PapaParse to parse CSV properly
   const parsed = Papa.parse(fileContent, {
@@ -85,19 +111,10 @@ function parseCsvFormat(fileContent: string): WritingDayStat[] {
       return;
     }
 
-    const dateStr = row.date.trim();
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) {
-      console.warn(`CSV row ${index + 2}: Invalid date format '${dateStr}', expected DD/MM/YYYY`);
-      return;
-    }
-
-    // Parse DD/MM/YYYY format - use UTC to avoid timezone issues
-    const [day, month, year] = parts.map((p: string) => parseInt(p, 10));
-    const date = new Date(Date.UTC(year, month - 1, day));
-
-    if (isNaN(date.getTime())) {
-      console.warn(`CSV row ${index + 2}: Failed to parse date from '${dateStr}'`);
+    const dateStr = (row.date || row.Date || '').trim();
+    const date = parseFlexibleDate(dateStr);
+    if (!date) {
+      console.warn(`CSV row ${index + 2}: Invalid date format '${dateStr}', expected DD/MM/YYYY or ISO`);
       return;
     }
 
@@ -246,10 +263,8 @@ function calculateStreakDistribution(stats: WritingDayStat[]): { [length: string
 }
 
 
-export function parseAndProcessScrivenerStats(fileContent: string): ProcessedStats {
-  const dailyStats = parseScrivenerStats(fileContent);
-
-  if (dailyStats.length === 0) {
+function buildProcessedStats(dailyStats: WritingDayStat[]): ProcessedStats {
+  if (!dailyStats || dailyStats.length === 0) {
     return {
       dailyStats: [],
       totalWords: 0,
@@ -315,4 +330,38 @@ export function parseAndProcessScrivenerStats(fileContent: string): ProcessedSta
     calendarData,
     streakDistribution,
   };
+}
+
+export function parseAndProcessScrivenerStats(fileContent: string): ProcessedStats {
+  const dailyStats = parseScrivenerStats(fileContent);
+  return buildProcessedStats(dailyStats);
+}
+
+function normalizeStatDate(dateValue: Date | string): Date | null {
+  if (!dateValue) return null;
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (isNaN(date.getTime())) return null;
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+export function processWritingDayStats(dailyStats: WritingDayStat[]): ProcessedStats {
+  if (!Array.isArray(dailyStats) || dailyStats.length === 0) {
+    return buildProcessedStats([]);
+  }
+  const normalizedStats: WritingDayStat[] = dailyStats
+    .map((stat) => {
+      const normalizedDate = normalizeStatDate(stat.date);
+      if (!normalizedDate) return null;
+      return {
+        date: normalizedDate,
+        wordsAdded: Number.isFinite(stat.wordsAdded) ? stat.wordsAdded : Math.max(0, stat.wordsNet || 0),
+        wordsSubtracted: Number.isFinite(stat.wordsSubtracted) ? stat.wordsSubtracted : Math.max(0, -(stat.wordsNet || 0)),
+        wordsNet: Number.isFinite(stat.wordsNet)
+          ? stat.wordsNet
+          : (Number.isFinite(stat.wordsAdded) ? stat.wordsAdded : 0) - (Number.isFinite(stat.wordsSubtracted) ? stat.wordsSubtracted : 0)
+      };
+    })
+    .filter((stat): stat is WritingDayStat => Boolean(stat))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  return buildProcessedStats(normalizedStats);
 }

@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ProcessedStats } from './types';
 import { parseAndProcessScrivenerStats } from './services/analysis';
 import FileUpload from './components/FileUpload';
@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
+  const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
 
   const handleFileUpload = useCallback(async (file: File) => {
     if (!file) return;
@@ -47,6 +48,61 @@ const App: React.FC = () => {
     setIsLoading(false);
     setFileName('');
   };
+
+  // Auto-load from query param ?path=... (timeline API) or ?csv=URL
+  useEffect(() => {
+    if (autoLoaded) return;
+    const params = new URLSearchParams(window.location.search);
+    const csvUrlParam = params.get('csv');
+    const pathParam = params.get('path');
+    let targetUrl: string | null = null;
+    if (csvUrlParam) {
+      targetUrl = csvUrlParam;
+    } else if (pathParam) {
+      const lower = pathParam.toLowerCase();
+      const looksLikeUrl = lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('/');
+      const looksLikeCsv = lower.endsWith('.csv');
+      if (looksLikeUrl || looksLikeCsv) {
+        // Treat as direct CSV url
+        targetUrl = pathParam;
+      } else {
+        // Treat as scrivener path for the API
+        targetUrl = `/scrivener-stats/api/writing-history.csv?path=${encodeURIComponent(pathParam)}`;
+      }
+    } else {
+      targetUrl = '/scrivener-stats/api/writing-history.csv';
+    }
+    if (!targetUrl) return;
+
+    setIsLoading(true);
+    setError(null);
+    setStats(null);
+    setFileName(pathParam || csvUrlParam || 'writing-history.csv');
+
+    fetch(targetUrl)
+      .then((resp) => {
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch data (${resp.status})`);
+        }
+        return resp.text();
+      })
+      .then((fileContent) => {
+        const processedData = parseAndProcessScrivenerStats(fileContent);
+        if (processedData.dailyStats.length === 0) {
+          throw new Error(NO_DATA_ERROR);
+        }
+        setStats(processedData);
+      })
+      .catch((e) => {
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        setError(`Failed to load data: ${errorMessage}`);
+        console.error(e);
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setAutoLoaded(true);
+      });
+  }, [autoLoaded]);
 
   const Header = () => (
     <header className="w-full p-4 flex justify-between items-center bg-gray-900/80 backdrop-blur-sm border-b border-gray-700">

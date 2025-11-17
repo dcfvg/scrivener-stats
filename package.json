@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "VITE_NO_CONFIG_BUNDLE=1 vite build",
+    "build:embed": "VITE_NO_CONFIG_BUNDLE=1 vite build --config vite.embed.config.mjs",
     "preview": "vite preview",
     "deploy": "npm run build && gh-pages -d dist"
   },
