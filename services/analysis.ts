@@ -226,6 +226,33 @@ function calculateLongestStreak(stats: WritingDayStat[]): { length: number; star
   return { length: longestStreak, startDate: longestStreakStartDate, endDate: longestStreakEndDate };
 }
 
+function calculateCurrentStreak(stats: WritingDayStat[]): { length: number; startDate: Date | null; endDate: Date | null; } {
+  if (stats.length === 0) return { length: 0, startDate: null, endDate: null };
+
+  const uniqueDates = Array.from(new Set(stats.map((s) => s.date.toDateString())))
+    .map((dateStr) => new Date(dateStr))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  let streakLength = 1;
+  let streakEnd = uniqueDates[uniqueDates.length - 1];
+  let streakStart = streakEnd;
+
+  for (let i = uniqueDates.length - 2; i >= 0; i--) {
+    const currentDate = uniqueDates[i];
+    const nextDate = uniqueDates[i + 1];
+    const diffDays = Math.round((nextDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      streakLength++;
+      streakStart = currentDate;
+    } else {
+      break;
+    }
+  }
+
+  return { length: streakLength, startDate: streakStart, endDate: streakEnd };
+}
+
 function calculateStreakDistribution(stats: WritingDayStat[]): { [length: string]: number } {
     const distribution: { [length: string]: number } = {};
     if (stats.length === 0) return distribution;
@@ -270,6 +297,7 @@ function buildProcessedStats(dailyStats: WritingDayStat[]): ProcessedStats {
       totalWords: 0,
       averageWordsPerDay: 0,
       longestStreak: { length: 0, startDate: null, endDate: null },
+      currentStreak: { length: 0, startDate: null, endDate: null },
       mostProductiveDay: null,
       firstDay: null,
       lastDay: null,
@@ -290,6 +318,7 @@ function buildProcessedStats(dailyStats: WritingDayStat[]): ProcessedStats {
   
   // Use all days for streak calculation, not just positive word days
   const longestStreak = calculateLongestStreak(dailyStats);
+  const currentStreak = calculateCurrentStreak(dailyStats);
   const streakDistribution = calculateStreakDistribution(dailyStats);
 
   const mostProductiveDay = [...dailyStats].sort((a, b) => b.wordsNet - a.wordsNet)[0] || null;
@@ -327,6 +356,7 @@ function buildProcessedStats(dailyStats: WritingDayStat[]): ProcessedStats {
     effectiveEndDate,
     writingDays,
     productivityRate,
+    currentStreak,
     calendarData,
     streakDistribution,
   };

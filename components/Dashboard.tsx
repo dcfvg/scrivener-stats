@@ -16,6 +16,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
     totalWords, 
     averageWordsPerDay, 
     longestStreak, 
+    currentStreak,
     mostProductiveDay,
     writingDays,
     productivityRate,
@@ -70,10 +71,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
           subtitle={streakSubtitle(longestStreak.startDate, longestStreak.endDate)}
         />
         <StatCard 
-          title="Writing Days" 
-          value={writingDays.toLocaleString()} 
+          title="Writing Days & Rate" 
+          value={`${writingDays.toLocaleString()} days (${productivityRate ?? 0}%)`} 
           icon={<CalendarDaysIcon className="h-8 w-8 text-emerald-400" />}
-          subtitle={`From ${formatDate(firstDay)} to ${formatDate(lastDay)}`}
+          subtitle={`From ${formatDate(firstDay)} to ${formatDate(lastDay)} • ${writingDays.toLocaleString()} of ${totalDaysInPeriod.toLocaleString()} days active`}
         />
         <StatCard 
           title="Most Productive Day" 
@@ -82,10 +83,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
           subtitle={formatDate(mostProductiveDay?.date)}
         />
         <StatCard 
-          title="Writing Rate" 
-          value={`${productivityRate ?? 0}%`} 
-          icon={<ChartBarIcon className="h-8 w-8 text-emerald-400" />} 
-          subtitle={`${writingDays} of ${totalDaysInPeriod} days active`}
+          title="Current Streak" 
+          value={`${currentStreak.length} Days`} 
+          icon={<ClockIcon className="h-8 w-8 text-emerald-400" />} 
+          subtitle={streakSubtitle(currentStreak.startDate, currentStreak.endDate)}
         />
       </div>
       

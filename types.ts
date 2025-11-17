@@ -14,6 +14,11 @@ export interface ProcessedStats {
     startDate: Date | null;
     endDate: Date | null;
   };
+  currentStreak: {
+    length: number;
+    startDate: Date | null;
+    endDate: Date | null;
+  };
   mostProductiveDay: WritingDayStat | null;
   firstDay: Date | null;
   lastDay: Date | null;

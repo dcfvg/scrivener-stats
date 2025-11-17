@@ -13,7 +13,7 @@ interface YearPeriod {
 }
 
 const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
-  const [yearType, setYearType] = useState<YearType>('calendar');
+  const [yearType, setYearType] = useState<YearType>('academic');
   
   const dateKeys = Object.keys(data);
   if (dateKeys.length === 0) {
