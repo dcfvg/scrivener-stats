@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 
 interface CalendarHeatmapProps {
   data: { [key: string]: number };
+  yearType: 'calendar' | 'academic';
+  onYearTypeChange: (type: 'calendar' | 'academic') => void;
 }
 
 type YearType = 'calendar' | 'academic';
@@ -12,8 +14,7 @@ interface YearPeriod {
   endDate: Date;
 }
 
-const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
-  const [yearType, setYearType] = useState<YearType>('academic');
+const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data, yearType, onYearTypeChange }) => {
   
   const dateKeys = Object.keys(data);
   if (dateKeys.length === 0) {
@@ -86,7 +87,7 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
     }
   };
 
-  const dayLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const dayLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
   const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   
   // Get month labels in the correct order based on year type
@@ -102,34 +103,10 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
 
   return (
     <div className="w-full">
-      {/* Toggle buttons */}
-      <div className="flex justify-end mb-6 space-x-2">
-        <button
-          onClick={() => setYearType('calendar')}
-          className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-            yearType === 'calendar'
-              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-          }`}
-        >
-          Calendar Year
-        </button>
-        <button
-          onClick={() => setYearType('academic')}
-          className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-            yearType === 'academic'
-              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-          }`}
-        >
-          Academic Year
-        </button>
-      </div>
-
       {yearPeriods.map(period => {
         const yearStartDate = period.startDate;
         const yearEndDate = period.endDate;
-        const firstDayOfWeek = yearStartDate.getUTCDay();
+        const firstDayOfWeek = (yearStartDate.getUTCDay() + 6) % 7; // Convert Sunday=0 to Monday=0
         
         // For current period, use today as the end date instead of the period end
         const today = new Date();
@@ -231,9 +208,9 @@ const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data }) => {
                           : `${date.toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}: No activity`;
 
                         return (
-                          <div key={dateKey} className="group relative">
-                            <div className={`h-4 w-4 ${getColor(count)} rounded-sm transition-transform duration-150 group-hover:scale-125 group-hover:ring-2 group-hover:ring-offset-2 group-hover:ring-offset-gray-800 group-hover:ring-emerald-400 z-10 relative`}></div>
-                            <div className="absolute z-20 bottom-full mb-2 left-1/2 -translate-x-1/2 p-2 text-xs text-white bg-gray-900/90 backdrop-blur-sm border border-gray-600 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                          <div key={dateKey} className="group relative z-0 hover:z-50">
+                            <div className={`h-4 w-4 ${getColor(count)} rounded-sm transition-transform duration-150 group-hover:scale-125 group-hover:ring-2 group-hover:ring-offset-2 group-hover:ring-offset-gray-800 group-hover:ring-emerald-400 relative`}></div>
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 p-2 text-xs text-white bg-gray-900/90 backdrop-blur-sm border border-gray-600 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                               {tooltipText}
                             </div>
                           </div>

@@ -4,10 +4,11 @@ import { WritingDayStat } from '../types';
 
 interface DailyProgressChartProps {
   data: WritingDayStat[];
+  view: 'overview' | 'streaks';
+  onViewChange: (view: 'overview' | 'streaks') => void;
 }
 
-const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
-  const [view, setView] = useState<'overview' | 'streaks'>('overview');
+const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data, view, onViewChange }) => {
 
   // Custom bar shape that renders streaks as segments
   const StreakSegmentBar = (props: any) => {
@@ -196,35 +197,8 @@ const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data }) => {
     return null;
   };
 
-  interface ToggleButtonProps {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-  }
-
-  const ToggleButton: React.FC<ToggleButtonProps> = ({ active, onClick, children }) => (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-        active
-          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-      }`}
-    >
-      {children}
-    </button>
-  );
-
   return (
-    <div className="w-full h-[400px] flex flex-col pt-4">
-      <div className="flex justify-end mb-4 space-x-2 flex-shrink-0">
-        <ToggleButton active={view === 'overview'} onClick={() => setView('overview')}>
-          Overview
-        </ToggleButton>
-        <ToggleButton active={view === 'streaks'} onClick={() => setView('streaks')}>
-          Streaks
-        </ToggleButton>
-      </div>
+    <div className="w-full h-[400px] flex flex-col">
       <div className="flex-grow min-h-[300px]">
         <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <ComposedChart
