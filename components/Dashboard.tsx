@@ -14,7 +14,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
   const [weekdayViewMode, setWeekdayViewMode] = useState<'activity' | 'average' | 'total'>('activity');
-  const [calendarYearType, setCalendarYearType] = useState<'calendar' | 'academic'>('calendar');
+  const [calendarYearType, setCalendarYearType] = useState<'calendar' | 'academic'>('academic');
   const [monthlyView, setMonthlyView] = useState<'overview' | 'streaks'>('overview');
 
   const { 

@@ -55,6 +55,13 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const csvUrlParam = params.get('csv');
     const pathParam = params.get('path');
+    
+    // If no parameters, don't try to auto-load
+    if (!csvUrlParam && !pathParam) {
+      setAutoLoaded(true);
+      return;
+    }
+    
     let targetUrl: string | null = null;
     if (csvUrlParam) {
       targetUrl = csvUrlParam;
@@ -69,10 +76,11 @@ const App: React.FC = () => {
         // Treat as scrivener path for the API
         targetUrl = `/scrivener-stats/api/writing-history.csv?path=${encodeURIComponent(pathParam)}`;
       }
-    } else {
-      targetUrl = '/scrivener-stats/api/writing-history.csv';
     }
-    if (!targetUrl) return;
+    if (!targetUrl) {
+      setAutoLoaded(true);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
