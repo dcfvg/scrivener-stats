@@ -1,6 +1,8 @@
-
 import React from 'react';
 
+/**
+ * Props for StatCard.
+ */
 interface StatCardProps {
   title: string;
   value: string;
@@ -8,6 +10,9 @@ interface StatCardProps {
   subtitle?: string;
 }
 
+/**
+ * Simple stat summary card for dashboard metrics.
+ */
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, subtitle }) => {
   return (
     <div className="bg-gray-800 p-6 rounded-xl shadow-lg flex items-center space-x-6 hover:bg-gray-700/50 transition-colors duration-300">

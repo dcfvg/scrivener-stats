@@ -1,16 +1,19 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { WritingDayStat } from '../types';
 
+/**
+ * Props for WeekdayDistributionChart.
+ */
 interface WeekdayDistributionChartProps {
   data: WritingDayStat[];
   viewMode: 'activity' | 'average' | 'total';
-  onViewModeChange: (mode: 'activity' | 'average' | 'total') => void;
 }
 
-type ViewMode = 'activity' | 'average' | 'total';
-
-const WeekdayDistributionChart: React.FC<WeekdayDistributionChartProps> = ({ data, viewMode, onViewModeChange }) => {
+/**
+ * Weekday distribution chart for activity, averages, or totals.
+ */
+const WeekdayDistributionChart: React.FC<WeekdayDistributionChartProps> = ({ data, viewMode }) => {
 
   const chartData = useMemo(() => {
     const weekdayCounts: { [key: string]: number } = {
@@ -43,7 +46,7 @@ const WeekdayDistributionChart: React.FC<WeekdayDistributionChartProps> = ({ dat
     });
 
     return weekdayOrder.map(day => ({
-      day: day.substring(0, 3), // Abréviation: Sun, Mon, etc.
+      day: day.substring(0, 3), // Abbreviation: Sun, Mon, etc.
       count: weekdayCounts[day],
       average: weekdayCounts[day] > 0 ? Math.round(weekdayWords[day] / weekdayCounts[day]) : 0,
       total: weekdayWords[day],

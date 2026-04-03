@@ -7,11 +7,17 @@ import StreakDistributionChart from './StreakDistributionChart';
 import WeekdayDistributionChart from './WeekdayDistributionChart';
 import { ChartBarIcon, ClockIcon, FireIcon, StarIcon, CalendarDaysIcon, PencilIcon, DocumentTextIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 
+/**
+ * Props for Dashboard.
+ */
 interface DashboardProps {
   stats: ProcessedStats;
   fileName: string;
 }
 
+/**
+ * Main analytics dashboard composed of stat cards and charts.
+ */
 const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
   const [weekdayViewMode, setWeekdayViewMode] = useState<'activity' | 'average' | 'total'>('activity');
   const [calendarYearType, setCalendarYearType] = useState<'calendar' | 'academic'>('academic');
@@ -45,8 +51,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
       return null;
     }
     return `From ${formatDate(startDate)} to ${formatDate(endDate)}`;
-};
-
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -128,7 +133,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
         <DailyProgressChart 
           data={stats.dailyStats}
           view={monthlyView}
-          onViewChange={setMonthlyView}
         />
       </div>
       
@@ -164,7 +168,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
         <CalendarHeatmap 
           data={stats.calendarData}
           yearType={calendarYearType}
-          onYearTypeChange={setCalendarYearType}
         />
       </div>
 
@@ -219,7 +222,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
           <WeekdayDistributionChart 
             data={stats.dailyStats} 
             viewMode={weekdayViewMode}
-            onViewModeChange={setWeekdayViewMode}
           />
         </div>
       </div>

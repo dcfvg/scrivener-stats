@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 
+/**
+ * Props for CalendarHeatmap.
+ */
 interface CalendarHeatmapProps {
   data: { [key: string]: number };
   yearType: 'calendar' | 'academic';
-  onYearTypeChange: (type: 'calendar' | 'academic') => void;
 }
-
-type YearType = 'calendar' | 'academic';
 
 interface YearPeriod {
   label: string;
@@ -14,7 +14,10 @@ interface YearPeriod {
   endDate: Date;
 }
 
-const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data, yearType, onYearTypeChange }) => {
+/**
+ * GitHub-style heatmap for writing activity with calendar and academic year views.
+ */
+const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ data, yearType }) => {
   
   const dateKeys = Object.keys(data);
   if (dateKeys.length === 0) {

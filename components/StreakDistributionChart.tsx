@@ -1,10 +1,16 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+/**
+ * Props for StreakDistributionChart.
+ */
 interface StreakDistributionChartProps {
   data: { [length: string]: number };
 }
 
+/**
+ * Histogram of streak lengths.
+ */
 const StreakDistributionChart: React.FC<StreakDistributionChartProps> = ({ data }) => {
   const chartData = useMemo(() => {
     return Object.entries(data)

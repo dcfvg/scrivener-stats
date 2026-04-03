@@ -1,12 +1,70 @@
 import React, { useCallback, useState } from 'react';
 import { DocumentArrowUpIcon } from '@heroicons/react/24/solid';
 
+/**
+ * Props for FileUpload.
+ */
 interface FileUploadProps {
-  onFileUpload: (file: File) => void;
+  onFilesSelected: (files: File[]) => void;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
+/**
+ * File input surface for Scrivener exports or project folders.
+ */
+const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected }) => {
   const [isDragging, setIsDragging] = useState(false);
+
+  const readAllEntries = (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> =>
+    new Promise((resolve, reject) => {
+      const entries: FileSystemEntry[] = [];
+      const readBatch = () => {
+        reader.readEntries((batch) => {
+          if (!batch.length) {
+            resolve(entries);
+            return;
+          }
+          entries.push(...batch);
+          readBatch();
+        }, reject);
+      };
+      readBatch();
+    });
+
+  const traverseEntry = async (entry: FileSystemEntry): Promise<File[]> => {
+    if (entry.isFile) {
+      return new Promise((resolve) => {
+        (entry as FileSystemFileEntry).file((file) => resolve([file]));
+      });
+    }
+
+    if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader();
+      const entries = await readAllEntries(reader);
+      const files = await Promise.all(entries.map((child) => traverseEntry(child)));
+      return files.flat();
+    }
+
+    return [];
+  };
+
+  const collectDroppedFiles = async (dataTransfer: DataTransfer): Promise<File[]> => {
+    const directFiles = Array.from(dataTransfer.files || []);
+    if (directFiles.length) {
+      return directFiles;
+    }
+
+    const items = Array.from(dataTransfer.items || []);
+    const entries = items
+      .map((item) => (item as DataTransferItem & { webkitGetAsEntry?: () => FileSystemEntry | null }).webkitGetAsEntry?.())
+      .filter((entry): entry is FileSystemEntry => Boolean(entry));
+
+    if (!entries.length) {
+      return [];
+    }
+
+    const nestedFiles = await Promise.all(entries.map((entry) => traverseEntry(entry)));
+    return nestedFiles.flat();
+  };
 
   const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -18,19 +76,30 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileUpload(e.dataTransfer.files[0]);
+    const files = await collectDroppedFiles(e.dataTransfer);
+    if (files.length) {
+      onFilesSelected(files);
     }
-  }, [onFileUpload]);
+  }, [onFilesSelected]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      onFileUpload(e.target.files[0]);
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      onFilesSelected(files);
     }
+    e.target.value = '';
+  };
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      onFilesSelected(files);
+    }
+    e.target.value = '';
   };
 
   return (
@@ -42,19 +111,42 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
-        <input type="file" id="file-upload" className="hidden" onChange={handleChange} accept=".txt,.csv,text/plain,text/csv" />
+        <input
+          type="file"
+          id="file-upload"
+          className="hidden"
+          onChange={handleChange}
+          accept=".txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values"
+        />
+        <input
+          type="file"
+          id="project-upload"
+          className="hidden"
+          onChange={handleProjectChange}
+          multiple
+          // @ts-expect-error - webkitdirectory is non-standard but supported by Chromium/Safari.
+          webkitdirectory="true"
+        />
         <label htmlFor="file-upload" className="flex flex-col items-center justify-center cursor-pointer space-y-4">
           <DocumentArrowUpIcon className="h-16 w-16 text-gray-400" />
           <p className="text-xl font-semibold text-center">
-            <span className="text-emerald-400">Select your file</span> or drag and drop
+            <span className="text-emerald-400">Select an export</span> or drag and drop a project folder
           </p>
-          <p className="text-gray-400 text-sm">Upload your Scrivener Writing History (.txt or .csv)</p>
+          <p className="text-gray-400 text-sm">Upload a Scrivener export (.txt/.csv) or choose a .scriv folder</p>
           <p className="text-emerald-400/70 text-xs mt-2">🔒 Your data stays on your computer - processed locally in your browser</p>
         </label>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <label
+            htmlFor="project-upload"
+            className="cursor-pointer rounded-lg border border-emerald-500/60 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/10"
+          >
+            Select Scrivener Project Folder
+          </label>
+        </div>
       </div>
       <div className="mt-8 text-gray-400 max-w-2xl mx-auto w-full">
         <h3 className="font-semibold text-gray-200 mb-3 text-center">How to get your data:</h3>
-        <p className="text-sm text-center mb-4">This tool supports two Scrivener export formats.</p>
+        <p className="text-sm text-center mb-4">Drop a project folder or export one of the supported formats.</p>
         <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-bold text-emerald-400 mb-2">Option 1: Daily Progress</h4>
@@ -66,7 +158,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
             </div>
             <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-bold text-emerald-400 mb-2">Option 2: Total Word Count</h4>
-                <p className="text-xs mb-3 text-gray-500">(Calculates daily progress from totals)</p>
+                <p className="text-xs mb-3 text-gray-500">(Daily progress derived from totals)</p>
                 <ol className="list-decimal list-inside space-y-1">
                     <li>Go to <code className="bg-gray-700 p-1 rounded-sm text-xs">Project</code> &gt; <code className="bg-gray-700 p-1 rounded-sm text-xs">Project Statistics...</code></li>
                     <li>Select the <code className="bg-gray-700 p-1 rounded-sm text-xs">Word counts per day</code> tab.</li>

@@ -1,3 +1,6 @@
+/**
+ * Represents a single day's writing statistics.
+ */
 export interface WritingDayStat {
   date: Date;
   wordsAdded: number;
@@ -5,6 +8,9 @@ export interface WritingDayStat {
   wordsNet: number;
 }
 
+/**
+ * Aggregated statistics and derived datasets for visualization.
+ */
 export interface ProcessedStats {
   dailyStats: WritingDayStat[];
   totalWords: number;

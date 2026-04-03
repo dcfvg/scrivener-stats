@@ -1,14 +1,19 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { WritingDayStat } from '../types';
 
+/**
+ * Props for DailyProgressChart.
+ */
 interface DailyProgressChartProps {
   data: WritingDayStat[];
   view: 'overview' | 'streaks';
-  onViewChange: (view: 'overview' | 'streaks') => void;
 }
 
-const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data, view, onViewChange }) => {
+/**
+ * Monthly progress chart with streak overlays and cumulative totals.
+ */
+const DailyProgressChart: React.FC<DailyProgressChartProps> = ({ data, view }) => {
 
   // Custom bar shape that renders streaks as segments
   const StreakSegmentBar = (props: any) => {

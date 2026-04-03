@@ -1,7 +1,7 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ProcessedStats } from './types';
-import { parseAndProcessScrivenerStats } from './services/analysis';
+import { processScrivenerFiles } from './services/fileProcessing';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
@@ -9,33 +9,35 @@ import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/soli
 // Constants
 const LOADING_MESSAGE = 'Analyzing your data locally...';
 const ERROR_TITLE = 'Error!';
-const NO_DATA_ERROR = 'No valid data found in the file. Please check the file format.';
+const NO_DATA_ERROR = 'No valid data found. Provide a Scrivener export or project folder.';
 
+/**
+ * Root application component that manages file intake and dashboard state.
+ */
 const App: React.FC = () => {
   const [stats, setStats] = useState<ProcessedStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
-  const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
 
-  const handleFileUpload = useCallback(async (file: File) => {
-    if (!file) return;
+  const handleFilesSelected = useCallback(async (files: File[]) => {
+    if (!files.length) return;
 
     setIsLoading(true);
     setError(null);
     setStats(null);
-    setFileName(file.name);
+    setFileName('');
 
     try {
-      const fileContent = await file.text();
-      const processedData = parseAndProcessScrivenerStats(fileContent);
-      if (processedData.dailyStats.length === 0) {
+      const processedData = await processScrivenerFiles(files);
+      if (processedData.stats.dailyStats.length === 0) {
         throw new Error(NO_DATA_ERROR);
       }
-      setStats(processedData);
+      setStats(processedData.stats);
+      setFileName(processedData.sourceName);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setError(`Failed to process file: ${errorMessage}`);
+      setError(`Failed to process selection: ${errorMessage}`);
       console.error(e);
     } finally {
       setIsLoading(false);
@@ -48,69 +50,6 @@ const App: React.FC = () => {
     setIsLoading(false);
     setFileName('');
   };
-
-  // Auto-load from query param ?path=... (timeline API) or ?csv=URL
-  useEffect(() => {
-    if (autoLoaded) return;
-    const params = new URLSearchParams(window.location.search);
-    const csvUrlParam = params.get('csv');
-    const pathParam = params.get('path');
-    
-    // If no parameters, don't try to auto-load
-    if (!csvUrlParam && !pathParam) {
-      setAutoLoaded(true);
-      return;
-    }
-    
-    let targetUrl: string | null = null;
-    if (csvUrlParam) {
-      targetUrl = csvUrlParam;
-    } else if (pathParam) {
-      const lower = pathParam.toLowerCase();
-      const looksLikeUrl = lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('/');
-      const looksLikeCsv = lower.endsWith('.csv');
-      if (looksLikeUrl || looksLikeCsv) {
-        // Treat as direct CSV url
-        targetUrl = pathParam;
-      } else {
-        // Treat as scrivener path for the API
-        targetUrl = `/scrivener-stats/api/writing-history.csv?path=${encodeURIComponent(pathParam)}`;
-      }
-    }
-    if (!targetUrl) {
-      setAutoLoaded(true);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setStats(null);
-    setFileName(pathParam || csvUrlParam || 'writing-history.csv');
-
-    fetch(targetUrl)
-      .then((resp) => {
-        if (!resp.ok) {
-          throw new Error(`Failed to fetch data (${resp.status})`);
-        }
-        return resp.text();
-      })
-      .then((fileContent) => {
-        const processedData = parseAndProcessScrivenerStats(fileContent);
-        if (processedData.dailyStats.length === 0) {
-          throw new Error(NO_DATA_ERROR);
-        }
-        setStats(processedData);
-      })
-      .catch((e) => {
-        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-        setError(`Failed to load data: ${errorMessage}`);
-        console.error(e);
-      })
-      .finally(() => {
-        setIsLoading(false);
-        setAutoLoaded(true);
-      });
-  }, [autoLoaded]);
 
   const Header = () => (
     <header className="w-full p-4 flex justify-between items-center bg-gray-900/80 backdrop-blur-sm border-b border-gray-700">
@@ -129,7 +68,7 @@ const App: React.FC = () => {
 
   const Footer = () => (
     <footer className="text-center p-4 text-xs text-gray-500 mt-auto">
-      <p>Export your writing history from Scrivener via 'Project' &gt; 'Writing History...' &gt; 'Export'.</p>
+      <p>Drop a .scriv project folder or export via 'Project' &gt; 'Writing History...' &gt; 'Export'.</p>
       <p className="mt-2 text-emerald-400/70">🔒 All data is processed locally in your browser. Nothing is uploaded or shared.</p>
     </footer>
   );
@@ -160,7 +99,7 @@ const App: React.FC = () => {
         ) : stats ? (
           <Dashboard stats={stats} fileName={fileName} />
         ) : (
-          <FileUpload onFileUpload={handleFileUpload} />
+          <FileUpload onFilesSelected={handleFilesSelected} />
         )}
       </main>
       <Footer />

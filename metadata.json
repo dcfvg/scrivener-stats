@@ -1,5 +1,5 @@
 
 {
   "name": "Scrivener Stat Visualizer",
-  "description": "An application to visualize your Scrivener writing history statistics. Upload your exported text file to see beautiful charts and insights into your writing progress and habits."
+  "description": "A local-first app to visualize Scrivener writing statistics. Drop a .scriv project folder or an export file to see charts and progress insights."
 }
