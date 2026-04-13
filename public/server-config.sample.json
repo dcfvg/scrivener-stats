@@ -1,0 +1,4 @@
+{
+  "autoLoadPath": "http://127.0.0.1:5770/api/writing-history.csv",
+  "autoLoadLabel": "writing-history.csv"
+}

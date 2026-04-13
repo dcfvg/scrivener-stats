@@ -1,27 +1,22 @@
-# Scrivener Stat Visualizer
+# scrivener-stats
 
-Local-first web app to visualize Scrivener writing statistics. Files are processed in your browser.
+Application React/Vite autonome pour visualiser les statistiques d'écriture Scrivener.
 
-## Features
-- Accepts Scrivener project folders (.scriv) or exports: Writing History (.txt) and Project Statistics (.csv)
-- Summary stats: totals, averages, longest/current streak, most productive day, writing rate
-- Visualizations: monthly progress with streak view, calendar heatmap (calendar/academic), streak distribution, weekday breakdown
+## Scripts
 
-## Usage
-1. Drop a .scriv project folder or export file into the app.
-2. If the project metadata does not include stats, export Writing History or Project Statistics and drop the file.
+- `npm run dev` : serveur Vite de développement
+- `npm run build` : build statique
+- `npm run back` : build puis serveur local installable sur `http://127.0.0.1:4678/`
+- `npm run preview` : prévisualisation du build déjà généré
 
-### Export from Scrivener
-- Writing History: Project > Writing History... > Export
-- Project Statistics: Project > Project Statistics... > Word counts per day > Export
+## Auto-chargement local
 
-## Development
-npm install
-npm run dev
-npm run build
-npm run preview
+Le mode serveur local peut générer un `server-config.json` temporaire pour charger automatiquement un CSV.
+Le mode statique reste compatible avec :
 
-## GH Pages
-Set the base path for your repo and deploy:
-VITE_BASE_PATH=/scrivener-stats/ npm run build
-npm run deploy
+- `?path=http://.../writing-history.csv`
+- le dépôt manuel de fichiers dans le navigateur
+
+## Installation
+
+Le build produit un manifeste, un service worker et des icônes, donc Chrome peut proposer l’installation de l’app comme pour `phd-render`.

@@ -16,22 +16,24 @@ const resolveBase = () => {
   return '/';
 };
 
-export default defineConfig(() => {
-  return {
-    base: resolveBase(),
-    server: {
-      port: 3000,
-      host: '0.0.0.0',
-      hmr: {
-        overlay: true,
-      },
+export default defineConfig(() => ({
+  base: resolveBase(),
+  server: {
+    port: 3000,
+    host: '127.0.0.1',
+    hmr: {
+      overlay: true,
     },
-    plugins: [react()],
-    cacheDir: path.resolve(__dirname, '.vite-cache'),
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      }
-    }
-  };
-});
+  },
+  preview: {
+    port: 4678,
+    host: '127.0.0.1',
+  },
+  plugins: [react()],
+  cacheDir: path.resolve(__dirname, '.vite-cache'),
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
+}));

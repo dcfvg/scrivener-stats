@@ -47,3 +47,5 @@ tmp/
 temp/
 .tmp/
 .temp/
+
+public/server-config.json

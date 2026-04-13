@@ -13,12 +13,13 @@ import { ChartBarIcon, ClockIcon, FireIcon, StarIcon, CalendarDaysIcon, PencilIc
 interface DashboardProps {
   stats: ProcessedStats;
   fileName: string;
+  showSourceName?: boolean;
 }
 
 /**
  * Main analytics dashboard composed of stat cards and charts.
  */
-const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
+const Dashboard: React.FC<DashboardProps> = ({ stats, fileName, showSourceName = true }) => {
   const [weekdayViewMode, setWeekdayViewMode] = useState<'activity' | 'average' | 'total'>('activity');
   const [calendarYearType, setCalendarYearType] = useState<'calendar' | 'academic'>('academic');
   const [monthlyView, setMonthlyView] = useState<'overview' | 'streaks'>('overview');
@@ -55,11 +56,13 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, fileName }) => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="px-4 py-2 bg-gray-800 rounded-lg">
-        <h2 className="text-lg font-medium text-gray-300">
-          Report for: <span className="font-bold text-emerald-400">{fileName}</span>
-        </h2>
-      </div>
+      {showSourceName && (
+        <div className="px-4 py-2 bg-gray-800 rounded-lg">
+          <h2 className="text-lg font-medium text-gray-300">
+            Report for: <span className="font-bold text-emerald-400">{fileName}</span>
+          </h2>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
