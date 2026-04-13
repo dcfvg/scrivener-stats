@@ -1,33 +1,49 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
 
-node_modules
-dist
-dist-ssr
-.vite-cache
-*.local
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Editor directories and files
+# Editors
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*~
 
-# OS files
-Thumbs.db
+# Node / package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+
+# Build outputs
+/dist/
+/dist-ssr/
+.vite-cache/
+coverage/
+.eslintcache
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.local
+
+# Logs / temp
+logs/
+*.log
+tmp/
+temp/
+.tmp/
+.temp/
