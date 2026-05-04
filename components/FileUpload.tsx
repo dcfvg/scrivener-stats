@@ -3,12 +3,10 @@ import { DocumentArrowUpIcon } from '@heroicons/react/24/solid';
 
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;
-  onUrlSelected: (url: string) => void;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected, onUrlSelected }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
 
   const readAllEntries = (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> =>
     new Promise((resolve, reject) => {
@@ -127,56 +125,20 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected, onUrlSelected 
           <img src={`${import.meta.env.BASE_URL}icons/app-icon.svg`} alt="" className="h-40 w-40" />
           <DocumentArrowUpIcon className="h-10 w-10 text-gray-400" />
           <p className="text-xl font-semibold text-center">
-            <span className="text-emerald-400">Select</span> or drop an export file
+            <span className="text-emerald-400">Select</span> or drop a Scrivener Writing History (.csv)
           </p>
-          <p className="text-gray-400 text-sm">Scrivener Writing History or Project Statistics export (.txt / .csv)</p>
-          <p className="text-emerald-400/70 text-xs mt-2">🔒 Your data stays on your computer - processed locally in your browser</p>
+          <p className="text-emerald-400/70 text-xs mt-2">🔒 Your data stays on your computer — processed locally. Share via <code className="text-emerald-400/90">?path=</code> to pre-load a file.</p>
         </label>
       </div>
-      <form
-        className="mt-6 flex gap-2 w-full max-w-2xl"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const trimmed = urlInput.trim();
-          if (trimmed) onUrlSelected(trimmed);
-        }}
-      >
-        <input
-          type="url"
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          placeholder="https://example.com/writing-history.csv"
-          className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-        />
-        <button
-          type="submit"
-          disabled={!urlInput.trim()}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          Load
-        </button>
-      </form>
-      <div className="mt-8 text-gray-400 max-w-2xl mx-auto w-full">
-        <h3 className="font-semibold text-gray-200 mb-3 text-center">How to get your data:</h3>
-        <p className="text-sm text-center mb-4">Export one of the supported formats from Scrivener, then drop or select the file.</p>
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-bold text-emerald-400 mb-2">Option 1: Daily Progress</h4>
-                <p className="text-xs mb-3 text-gray-500">(Recommended for detailed stats)</p>
-                <ol className="list-decimal list-inside space-y-1">
-                    <li>Go to <code className="bg-gray-700 p-1 rounded-sm text-xs">Project</code> &gt; <code className="bg-gray-700 p-1 rounded-sm text-xs">Writing History...</code></li>
-                    <li>Click the <code className="bg-gray-700 p-1 rounded-sm text-xs">Export</code> button.</li>
-                </ol>
-            </div>
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-bold text-emerald-400 mb-2">Option 2: Total Word Count</h4>
-                <p className="text-xs mb-3 text-gray-500">(Daily progress derived from totals)</p>
-                <ol className="list-decimal list-inside space-y-1">
-                    <li>Go to <code className="bg-gray-700 p-1 rounded-sm text-xs">Project</code> &gt; <code className="bg-gray-700 p-1 rounded-sm text-xs">Project Statistics...</code></li>
-                    <li>Select the <code className="bg-gray-700 p-1 rounded-sm text-xs">Word counts per day</code> tab.</li>
-                    <li>Click <code className="bg-gray-700 p-1 rounded-sm text-xs">Export...</code> and save.</li>
-                </ol>
-            </div>
+      <div className="mt-8 max-w-2xl mx-auto w-full">
+        <h3 className="font-semibold text-gray-200 mb-3 text-center">How to export your data from Scrivener</h3>
+        <div className="bg-gray-800 p-5 rounded-lg border border-emerald-700/50 text-sm">
+          <ol className="list-decimal list-inside space-y-2 text-gray-300">
+            <li>Open your project in Scrivener</li>
+            <li>Go to <code className="bg-gray-700 px-1 rounded text-xs">Project</code> → <code className="bg-gray-700 px-1 rounded text-xs">Writing History…</code></li>
+            <li>Click <code className="bg-gray-700 px-1 rounded text-xs">Export</code> and save the file</li>
+            <li>Drop or select the saved file above</li>
+          </ol>
         </div>
       </div>
     </div>

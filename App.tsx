@@ -48,8 +48,9 @@ const App: React.FC = () => {
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
+  const [fromServer, setFromServer] = useState<boolean>(false);
 
-  const loadStatsFromUrl = useCallback(async (targetUrl: string, preferredLabel?: string) => {
+  const loadStatsFromUrl = useCallback(async (targetUrl: string, preferredLabel?: string, isServer = false) => {
     if (!targetUrl) return;
 
     setIsLoading(true);
@@ -69,6 +70,7 @@ const App: React.FC = () => {
       }
       setStats(processedData);
       setFileName(deriveSourceName(targetUrl, preferredLabel));
+      setFromServer(isServer);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(`Failed to load remote stats: ${errorMessage}`);
@@ -93,7 +95,7 @@ const App: React.FC = () => {
 
         const config = await loadRuntimeServerConfig();
         if (config?.autoLoadPath) {
-          await loadStatsFromUrl(config.autoLoadPath, config.autoLoadLabel);
+          await loadStatsFromUrl(config.autoLoadPath, config.autoLoadLabel, true);
         }
       } finally {
         if (!cancelled) {
@@ -132,33 +134,33 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(async () => {
     setStats(null);
     setError(null);
     setIsLoading(false);
     setFileName('');
-  };
+    setFromServer(false);
+    if (fromServer) {
+      const config = await loadRuntimeServerConfig();
+      if (config?.autoLoadPath) {
+        await loadStatsFromUrl(config.autoLoadPath, config.autoLoadLabel, true);
+      }
+    }
+  }, [fromServer, loadStatsFromUrl]);
 
   const Header = () => (
-    <header className="w-full p-4 flex justify-between items-center bg-gray-900/80 backdrop-blur-sm border-b border-gray-700">
+    <header className="w-full p-4 flex justify-center items-center bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 relative">
       <h1 className="text-xl md:text-2xl font-bold text-emerald-400">Scrivener Stats</h1>
       {stats && (
         <button
           onClick={handleReset}
-          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300"
+          className="absolute right-4 flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300"
         >
           <ArrowPathIcon className="h-5 w-5" />
           <span>New Report</span>
         </button>
       )}
     </header>
-  );
-
-  const Footer = () => (
-    <footer className="text-center p-4 text-xs text-gray-500 mt-auto">
-      <p>Drop a .scriv project folder, open a writing-history export, or use the <code>?path=</code> URL parameter.</p>
-      <p className="mt-2 text-emerald-400/70">🔒 All data is processed locally in your browser. Nothing is uploaded or shared.</p>
-    </footer>
   );
 
   return (
@@ -187,13 +189,9 @@ const App: React.FC = () => {
         ) : stats ? (
           <Dashboard stats={stats} fileName={fileName} showSourceName={true} />
         ) : (
-          <FileUpload
-            onFilesSelected={handleFilesSelected}
-            onUrlSelected={loadStatsFromUrl}
-          />
+          <FileUpload onFilesSelected={handleFilesSelected} />
         )}
       </main>
-      <Footer />
     </div>
   );
 };
