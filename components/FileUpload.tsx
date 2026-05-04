@@ -1,18 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { DocumentArrowUpIcon } from '@heroicons/react/24/solid';
 
-/**
- * Props for FileUpload.
- */
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;
+  onUrlSelected: (url: string) => void;
 }
 
-/**
- * File input surface for Scrivener exports or project folders.
- */
-const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected, onUrlSelected }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
 
   const readAllEntries = (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> =>
     new Promise((resolve, reject) => {
@@ -144,6 +140,33 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected }) => {
           </label>
         </div>
       </div>
+      <div className="mt-6 w-full max-w-2xl">
+        <p className="text-sm text-gray-400 text-center mb-2">Or load from a URL:</p>
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const trimmed = urlInput.trim();
+            if (trimmed) onUrlSelected(trimmed);
+          }}
+        >
+          <input
+            type="url"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            placeholder="https://example.com/writing-history.csv"
+            className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+          />
+          <button
+            type="submit"
+            disabled={!urlInput.trim()}
+            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            Load
+          </button>
+        </form>
+      </div>
+
       <div className="mt-8 text-gray-400 max-w-2xl mx-auto w-full">
         <h3 className="font-semibold text-gray-200 mb-3 text-center">How to get your data:</h3>
         <p className="text-sm text-center mb-4">Drop a project folder or export one of the supported formats.</p>

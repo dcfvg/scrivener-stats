@@ -48,9 +48,8 @@ const App: React.FC = () => {
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
-  const [autoLoadSource, setAutoLoadSource] = useState<'none' | 'query' | 'server'>('none');
 
-  const loadStatsFromUrl = useCallback(async (targetUrl: string, preferredLabel?: string, autoLoadSource: 'none' | 'query' | 'server' = 'none') => {
+  const loadStatsFromUrl = useCallback(async (targetUrl: string, preferredLabel?: string) => {
     if (!targetUrl) return;
 
     setIsLoading(true);
@@ -70,7 +69,6 @@ const App: React.FC = () => {
       }
       setStats(processedData);
       setFileName(deriveSourceName(targetUrl, preferredLabel));
-      setAutoLoadSource(autoLoadSource);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(`Failed to load remote stats: ${errorMessage}`);
@@ -89,13 +87,13 @@ const App: React.FC = () => {
         const paramPath = params.get('path');
         const paramLabel = params.get('label') || undefined;
         if (paramPath) {
-          await loadStatsFromUrl(paramPath, paramLabel, 'query');
+          await loadStatsFromUrl(paramPath, paramLabel);
           return;
         }
 
         const config = await loadRuntimeServerConfig();
         if (config?.autoLoadPath) {
-          await loadStatsFromUrl(config.autoLoadPath, config.autoLoadLabel, 'server');
+          await loadStatsFromUrl(config.autoLoadPath, config.autoLoadLabel);
         }
       } finally {
         if (!cancelled) {
@@ -125,7 +123,6 @@ const App: React.FC = () => {
       }
       setStats(processedData.stats);
       setFileName(processedData.sourceName);
-      setAutoLoadSource('none');
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(`Failed to process selection: ${errorMessage}`);
@@ -140,13 +137,12 @@ const App: React.FC = () => {
     setError(null);
     setIsLoading(false);
     setFileName('');
-    setAutoLoadSource('none');
   };
 
   const Header = () => (
     <header className="w-full p-4 flex justify-between items-center bg-gray-900/80 backdrop-blur-sm border-b border-gray-700">
       <h1 className="text-xl md:text-2xl font-bold text-emerald-400">Scrivener Stats</h1>
-      {stats && autoLoadSource !== 'server' && (
+      {stats && (
         <button
           onClick={handleReset}
           className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300"
@@ -167,7 +163,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center text-gray-200 font-sans">
-      {autoLoadSource !== 'server' && <Header />}
+      <Header />
       <main className="w-full max-w-7xl mx-auto p-4 md:p-8 flex-grow">
         {isLoading || isBootstrapping ? (
           <div className="flex flex-col items-center justify-center h-64">
@@ -189,9 +185,12 @@ const App: React.FC = () => {
             </button>
           </div>
         ) : stats ? (
-          <Dashboard stats={stats} fileName={fileName} showSourceName={autoLoadSource !== 'server'} />
+          <Dashboard stats={stats} fileName={fileName} showSourceName={true} />
         ) : (
-          <FileUpload onFilesSelected={handleFilesSelected} />
+          <FileUpload
+            onFilesSelected={handleFilesSelected}
+            onUrlSelected={loadStatsFromUrl}
+          />
         )}
       </main>
       <Footer />
