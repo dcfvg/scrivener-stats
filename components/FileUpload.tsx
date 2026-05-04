@@ -124,52 +124,41 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelected, onUrlSelected 
           webkitdirectory="true"
         />
         <label htmlFor="file-upload" className="flex flex-col items-center justify-center cursor-pointer space-y-4">
-          <DocumentArrowUpIcon className="h-16 w-16 text-gray-400" />
+          <img src={`${import.meta.env.BASE_URL}icons/app-icon.svg`} alt="" className="h-40 w-40" />
+          <DocumentArrowUpIcon className="h-10 w-10 text-gray-400" />
           <p className="text-xl font-semibold text-center">
-            <span className="text-emerald-400">Select an export</span> or drag and drop a project folder
+            <span className="text-emerald-400">Select</span> or drop an export file
           </p>
-          <p className="text-gray-400 text-sm">Upload a Scrivener export (.txt/.csv) or choose a .scriv folder</p>
+          <p className="text-gray-400 text-sm">Scrivener Writing History or Project Statistics export (.txt / .csv)</p>
           <p className="text-emerald-400/70 text-xs mt-2">🔒 Your data stays on your computer - processed locally in your browser</p>
         </label>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <label
-            htmlFor="project-upload"
-            className="cursor-pointer rounded-lg border border-emerald-500/60 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/10"
-          >
-            Select Scrivener Project Folder
-          </label>
-        </div>
       </div>
-      <div className="mt-6 w-full max-w-2xl">
-        <p className="text-sm text-gray-400 text-center mb-2">Or load from a URL:</p>
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const trimmed = urlInput.trim();
-            if (trimmed) onUrlSelected(trimmed);
-          }}
+      <form
+        className="mt-6 flex gap-2 w-full max-w-2xl"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const trimmed = urlInput.trim();
+          if (trimmed) onUrlSelected(trimmed);
+        }}
+      >
+        <input
+          type="url"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="https://example.com/writing-history.csv"
+          className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+        />
+        <button
+          type="submit"
+          disabled={!urlInput.trim()}
+          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
         >
-          <input
-            type="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="https://example.com/writing-history.csv"
-            className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-          />
-          <button
-            type="submit"
-            disabled={!urlInput.trim()}
-            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            Load
-          </button>
-        </form>
-      </div>
-
+          Load
+        </button>
+      </form>
       <div className="mt-8 text-gray-400 max-w-2xl mx-auto w-full">
         <h3 className="font-semibold text-gray-200 mb-3 text-center">How to get your data:</h3>
-        <p className="text-sm text-center mb-4">Drop a project folder or export one of the supported formats.</p>
+        <p className="text-sm text-center mb-4">Export one of the supported formats from Scrivener, then drop or select the file.</p>
         <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-bold text-emerald-400 mb-2">Option 1: Daily Progress</h4>
