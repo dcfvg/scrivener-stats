@@ -31,6 +31,9 @@ export default defineConfig(() => ({
   },
   plugins: [react()],
   cacheDir: path.resolve(__dirname, '.vite-cache'),
+  build: {
+    chunkSizeWarningLimit: 700,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
