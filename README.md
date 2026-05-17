@@ -47,12 +47,13 @@ cd scrivener-stats
 npm install
 npm run dev        # dev server at http://127.0.0.1:3000
 npm run build      # static build → dist/
+npm run check      # typecheck + static builds
 npm run preview    # preview the build at http://127.0.0.1:4678
 ```
 
 ### Local server mode (optional)
 
-`npm run back` starts a local preview server and generates a `server-config.json` that auto-loads a CSV from a companion [scrivener-api](../scrivener-api) service. This is only useful for local automation; the static build works independently.
+The local PhD stack is managed by [`phds`](../phd-services). `phds start scrivener-stats` starts the app with its `scrivener-api` dependency and generates a temporary `server-config.json` that auto-loads `/api/writing-history.csv`. This is only useful for local automation; the static build works independently.
 
 ## Privacy
 

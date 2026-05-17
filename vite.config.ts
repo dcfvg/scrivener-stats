@@ -19,14 +19,14 @@ const resolveBase = () => {
 export default defineConfig(() => ({
   base: resolveBase(),
   server: {
-    port: 3000,
+    port: Number(process.env.SCRIVENER_STATS_DEV_PORT || 3000),
     host: '127.0.0.1',
     hmr: {
       overlay: true,
     },
   },
   preview: {
-    port: 4678,
+    port: Number(process.env.SCRIVENER_STATS_PORT || 4678),
     host: '127.0.0.1',
   },
   plugins: [react()],
